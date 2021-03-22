@@ -129,10 +129,6 @@ def custom_tf(model_name, loss_name, optimizer_name, preprocessing_layer, inputs
     return model_return
 
 
-def one_hot(feature, label):
-    label_one_hot = tf.one_hot(label, depth)
-    return feature, label_one_hot
-
 
 def build(epochs, batch_size, problem, lr_rate, file_path, feature_select, label_select, missing, model_name, loss_name, optimizer_name):
 
@@ -146,7 +142,7 @@ def build(epochs, batch_size, problem, lr_rate, file_path, feature_select, label
     if problem == 'regression':
         output_shape = 1
     elif problem == 'classification':
-        output_shape = max([5, 6])
+        output_shape = max(df_label) +1
     model = custom_tf(model_name=model_name,
                       loss_name=loss_name,
                       optimizer_name=optimizer_name,
