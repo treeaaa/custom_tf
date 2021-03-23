@@ -3,6 +3,11 @@ from tensorflow.keras.layers.experimental import preprocessing
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from flask import Flask
+from flask import request
+import json
+
+app = Flask(__name__)
 
 
 def load_csv(file_path, feature_select, label_select, missing):
@@ -129,20 +134,38 @@ def custom_tf(model_name, loss_name, optimizer_name, preprocessing_layer, inputs
     return model_return
 
 
+@app.route('/', methods=['GET'])
+def return_hi():
+    # 用於測試
+    return 'h'
 
-def build(epochs, batch_size, problem, lr_rate, file_path, feature_select, label_select, missing, model_name, loss_name, optimizer_name):
+
+@app.route('/custom_tf/arg', methods=['POST'])
+def build():
+    req = request.get_json()
+
+    epochs = req['epochs']
+    batch_size = req['batch_size']
+    problem = req['problem']
+    lr_rate = req['lr_rate']
+    file_path = req['file_path']
+    feature_select = req['feature_select']
+    label_select = req['label_select']
+    missing = req['missing']
+    model_name = req['model_name']
+    loss_name = req['loss_name']
+    optimizer_name = req['optimizer_name']
 
     df_feature, df_label, df_ori = load_csv(file_path=file_path,
                                             feature_select=feature_select,
                                             label_select=label_select,
                                             missing=missing)
-
     df_feature_dict, df_preprocessing_layer, inputs = preprocess(df_feature=df_feature,
                                                                  df_ori=df_ori)
     if problem == 'regression':
         output_shape = 1
     elif problem == 'classification':
-        output_shape = max(df_label) +1
+        output_shape = max(df_label) + 1
     model = custom_tf(model_name=model_name,
                       loss_name=loss_name,
                       optimizer_name=optimizer_name,
@@ -161,24 +184,20 @@ def build(epochs, batch_size, problem, lr_rate, file_path, feature_select, label
     train_history = model.fit(df_batches, epochs=epochs)
     loss = train_history.history['loss']
 
-    return {'train_loss':loss}
-    # model.fit(x=df_feature_dict, y=df_label, epochs=epochs,batch_size=5)
+    return {'train_loss': loss}
+
 
 if __name__ == '__main__':
-    res = build(epochs=20,
-                batch_size=32,
-                problem='classification',
-                lr_rate=1e-3,
-                file_path=r'C:\Users\carteryang\1_tf\titanic\train.csv',
-                feature_select=['Sex', 'Age', 'Fare'],
-                label_select=['Survived'],
-                missing='padavg',
-                model_name='MLP',
-                loss_name='SparseCategoricalCrossentropy',
-                optimizer_name='Adam',
-                )
-    plt.plot(res['train_loss'])
-    plt.show()
-# model.build((None,8))
-# print(model.summary()[:-1])
-# model.fit(data_feature, data_label, epochs=2)
+    app.run(debug=True)
+    # res = build(epochs=20,
+    #             batch_size=32,
+    #             problem='classification',
+    #             lr_rate=1e-3,
+    #             file_path=r'C:\Users\carteryang\1_tf\titanic\train.csv',
+    #             feature_select=['Sex', 'Age', 'Fare'],
+    #             label_select=['Survived'],
+    #             missing='padavg',
+    #             model_name='MLP',
+    #             loss_name='SparseCategoricalCrossentropy',
+    #             optimizer_name='Adam',
+    #             )
