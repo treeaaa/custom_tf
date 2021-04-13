@@ -75,7 +75,7 @@ def preprocess(df_feature, df_ori):
     return df_feature_dict, df_preprocessing, inputs
 
 
-def model_choice(model_name, input_shape, output_shape):
+def model_choice(model_name, input_shape, output_shape, activation=None):
     # 選擇model
     if model_name == 'vgg16':
         model = tf.keras.applications.VGG16()
@@ -84,7 +84,7 @@ def model_choice(model_name, input_shape, output_shape):
     elif model_name == "MLP":
         model = tf.keras.Sequential([
             tf.keras.Input(shape=(input_shape,)),
-            tf.keras.layers.Dense(64),
+            tf.keras.layers.Dense(64, activation=activation),
             tf.keras.layers.Dense(output_shape)
         ])
     return model
@@ -118,10 +118,25 @@ def optimizer_choice(optimizer_name, lr_rate):
     return optimizer
 
 
-def custom_tf(model_name, loss_name, optimizer_name, preprocessing_layer, inputs, input_shape, output_shape, lr_rate=1e-3):
+def activation_choice(activation_name):
+    if activation_name == 'relu':
+        activation = tf.keras.activations.relu
+    elif activation_name == 'softmax':
+        activation = tf.keras.activations.softmax
+    elif activation_name == 'sigmoid':
+        activation = tf.keras.activations.sigmoid
+    elif activation_name == 'tanh':
+        activation = tf.keras.activations.tanh
+    elif activation_name == 'None':
+        activation = tf.keras.activations.linear
+    return activation
+
+
+def custom_tf(model_name, loss_name, optimizer_name, preprocessing_layer, inputs, input_shape, output_shape, lr_rate=1e-3, activation_name='relu'):
     model = model_choice(model_name=model_name,
                          input_shape=input_shape,
-                         output_shape=output_shape)
+                         output_shape=output_shape,
+                         activation=activation_choice(activation_name))
     preprocessing_inputs = preprocessing_layer(inputs)
     final = model(preprocessing_inputs)
     model_return = tf.keras.Model(inputs, final)
@@ -155,7 +170,7 @@ def build():
     model_name = req['model_name']
     loss_name = req['loss_name']
     optimizer_name = req['optimizer_name']
-
+    activation_name = req['activation_name']
     df_feature, df_label, df_ori = load_csv(file_path=file_path,
                                             feature_select=feature_select,
                                             label_select=label_select,
@@ -176,7 +191,8 @@ def build():
                       # preprocess完成之後shape會改變(可能有onehot)
                       # 所以model intput以preprocess之後的為主
                       output_shape=output_shape,
-                      lr_rate=lr_rate)
+                      lr_rate=lr_rate,
+                      activation_name=activation_name)
     df_ds = tf.data.Dataset.from_tensor_slices((df_feature_dict, df_label))
 
     df_batches = df_ds.shuffle(len(df_label)).batch(batch_size)
